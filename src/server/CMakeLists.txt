@@ -1,0 +1,1 @@
+add_executable(server ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
