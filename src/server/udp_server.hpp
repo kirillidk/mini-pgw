@@ -2,6 +2,7 @@
 
 #include <arpa/inet.h>
 #include <string>
+#include <vector>
 
 class udp_server {
 public:
@@ -18,7 +19,7 @@ public:
 
 private:
     void setup(const std::string &ip, int port);
-    void handlePacket(char *buffer);
+    void handle_packet(std::vector<uint8_t> &buffer);
 
 private:
     int _socket_fd;

@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <cstring>
 #include <fcntl.h>
 #include <iostream>
@@ -5,9 +6,9 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <vector>
 
 #include <udp_server.hpp>
+#include <utility.hpp>
 
 udp_server::udp_server(const std::string &ip, int port) : _socket_fd(-1), _epoll_fd(-1) { setup(ip, port); }
 
@@ -90,7 +91,7 @@ void udp_server::setup(const std::string &ip, int port) {
 
 void udp_server::run() {
     std::vector<epoll_event> events(MAX_EVENTS);
-    char buffer[BUFFER_SIZE];
+    std::vector<uint8_t> buffer(BUFFER_SIZE);
 
     while (true) {
         int event_count = epoll_wait(_epoll_fd, events.data(), MAX_EVENTS, -1);
@@ -102,28 +103,20 @@ void udp_server::run() {
 
         for (int i = 0; i < event_count; ++i) {
             if (events[i].data.fd == _socket_fd) {
-                handlePacket(buffer);
+                handle_packet(buffer);
             }
         }
     }
 }
 
-void udp_server::handlePacket(char *buffer) {
-    sockaddr_in client_addr;
-    socklen_t client_len = sizeof(client_addr);
-
-    ssize_t bytes_received = recvfrom(_socket_fd, buffer, BUFFER_SIZE - 1, 0, (sockaddr *) &client_addr, &client_len);
+void udp_server::handle_packet(std::vector<uint8_t> &buffer) {
+    ssize_t bytes_received = recv(_socket_fd, buffer.data(), BUFFER_SIZE, 0);
 
     if (bytes_received < 0) {
-        std::cerr << "recvfrom error" << std::endl;
+        std::cerr << "recv error" << std::endl;
         return;
     }
 
-    buffer[bytes_received] = '\0';
-
-    char client_ip[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, INET_ADDRSTRLEN);
-
-    std::cout << "Received from " << client_ip << ":" << ntohs(client_addr.sin_port) << " - " << buffer << " ("
-              << bytes_received << " bytes)" << std::endl;
+    buffer.resize(bytes_received);
+    std::cout << utility::parse_imsi_from_bcd(buffer) << std::endl;
 }
