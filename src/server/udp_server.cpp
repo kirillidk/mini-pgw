@@ -10,7 +10,10 @@
 #include <udp_server.hpp>
 #include <utility.hpp>
 
-udp_server::udp_server(const std::string &ip, int port) : _socket_fd(-1), _epoll_fd(-1) { setup(ip, port); }
+udp_server::udp_server(const std::string &ip, int port, data_plane &dp) :
+    _socket_fd(-1), _epoll_fd(-1), _data_plane(dp) {
+    setup(ip, port);
+}
 
 udp_server::~udp_server() {
     if (_socket_fd != -1) {
@@ -19,27 +22,6 @@ udp_server::~udp_server() {
     if (_epoll_fd != -1) {
         close(_epoll_fd);
     }
-}
-
-udp_server::udp_server(udp_server &&other) noexcept : _socket_fd(other._socket_fd), _epoll_fd(other._epoll_fd) {
-    other._socket_fd = -1;
-    other._epoll_fd = -1;
-}
-
-udp_server &udp_server::operator=(udp_server &&other) noexcept {
-    if (this != &other) {
-        if (_socket_fd != -1)
-            close(_socket_fd);
-        if (_epoll_fd != -1)
-            close(_epoll_fd);
-
-        _socket_fd = other._socket_fd;
-        _epoll_fd = other._epoll_fd;
-
-        other._socket_fd = -1;
-        other._epoll_fd = -1;
-    }
-    return *this;
 }
 
 void udp_server::setup(const std::string &ip, int port) {
@@ -110,13 +92,28 @@ void udp_server::run() {
 }
 
 void udp_server::handle_packet(std::vector<uint8_t> &buffer) {
-    ssize_t bytes_received = recv(_socket_fd, buffer.data(), BUFFER_SIZE, 0);
+    sockaddr_in client_addr{};
+    socklen_t client_len = sizeof(client_addr);
 
-    if (bytes_received < 0) {
-        std::cerr << "recv error" << std::endl;
-        return;
+    while (true) {
+        ssize_t bytes_received =
+                recvfrom(_socket_fd, buffer.data(), BUFFER_SIZE, MSG_DONTWAIT, (sockaddr *) &client_addr, &client_len);
+
+        if (bytes_received < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                break;
+            }
+            break;
+        }
+
+        buffer.resize(bytes_received);
+
+        std::string response = _data_plane.handle_packet(buffer);
+
+        send_response(response, client_addr);
     }
+}
 
-    buffer.resize(bytes_received);
-    std::cout << utility::parse_imsi_from_bcd(buffer) << std::endl;
+void udp_server::send_response(const std::string &response, const sockaddr_in &client_addr) {
+    sendto(_socket_fd, response.data(), response.size(), 0, (const sockaddr *) &client_addr, sizeof(client_addr));
 }

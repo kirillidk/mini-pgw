@@ -1,10 +1,16 @@
 #include <iostream>
 
+#include <control_plane.hpp>
+#include <data_plane.hpp>
 #include <udp_server.hpp>
 
 int main() {
     try {
-        udp_server server("0.0.0.0", 9000);
+        control_plane cp;
+        data_plane dp(cp);
+
+        udp_server server("0.0.0.0", 9000, dp);
+
         server.run();
     } catch (const std::exception &e) {
         std::cerr << "Error: " << e.what() << std::endl;
