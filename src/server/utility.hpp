@@ -1,9 +1,18 @@
 #pragma once
 
 #include <cstdint>
+#include <expected>
 #include <string>
 #include <vector>
 
 namespace utility {
-    [[nodiscard]] std::string parse_imsi_from_bcd(const std::vector<uint8_t> &packet);
+    enum class parse_error {
+        packet_too_short,
+        invalid_imsi_type,
+        packet_size_mismatch,
+        invalid_bcd_digit,
+        invalid_imsi_length
+    };
+
+    [[nodiscard]] std::expected<std::string, parse_error> parse_imsi_from_bcd(const std::vector<uint8_t> &packet);
 } // namespace utility

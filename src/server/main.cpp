@@ -14,12 +14,15 @@ int main() {
         data_plane dp(cp);
 
         udp_server server(dp);
-
         server.run();
+    } catch (const config_exception &e) {
+        std::cerr << e.what() << '\n';
+        return 2;
+    } catch (const udp_server_exception &e) {
+        std::cerr << e.what() << "\n";
+        return 3;
     } catch (const std::exception &e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+        std::cerr << e.what() << "\n";
         return 1;
     }
-
-    return 0;
 }

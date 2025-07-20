@@ -1,4 +1,3 @@
-#include <stdexcept>
 #include <string>
 
 #include <data_plane.hpp>
@@ -6,14 +5,15 @@
 
 data_plane::data_plane(control_plane &control_plane) : _control_plane(control_plane) {}
 
-std::string data_plane::handle_packet(const Packet &packet) {
-    std::string imsi = utility::parse_imsi_from_bcd(packet);
+std::expected<std::string, data_plane_error> data_plane::handle_packet(const Packet &packet) {
+    std::expected<std::string, utility::parse_error> imsi = utility::parse_imsi_from_bcd(packet);
 
-    std::shared_ptr<session> session_ptr = _control_plane.create_session(imsi);
+    if (not imsi.has_value()) {
+        // todo log imsi.error()
+        return std::unexpected(data_plane_error::packet_parsing_failed);
+    }
 
-    if (session_ptr) {
-        return "created";
-    } else {
-        return "rejected";
-    };
+    _control_plane.create_session(imsi.value());
+
+    return "created";
 }

@@ -1,10 +1,15 @@
 #pragma once
 
 #include <cstdint>
+#include <expected>
 #include <string>
 #include <vector>
 
 #include <control_plane.hpp>
+
+enum class data_plane_error {
+    packet_parsing_failed,
+};
 
 class udp_server;
 
@@ -15,7 +20,7 @@ public:
     explicit data_plane(control_plane &control_plane);
 
 public:
-    std::string handle_packet(const Packet &packet);
+    std::expected<std::string, data_plane_error> handle_packet(const Packet &packet);
 
 private:
     friend udp_server;

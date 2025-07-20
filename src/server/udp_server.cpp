@@ -1,8 +1,8 @@
 #include <cstdint>
 #include <cstring>
 #include <fcntl.h>
+#include <format>
 #include <iostream>
-#include <stdexcept>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -10,6 +10,8 @@
 #include <config.hpp>
 #include <data_plane.hpp>
 #include <udp_server.hpp>
+
+#include <magic_enum/magic_enum.hpp>
 
 udp_server::udp_server(data_plane &dp) : _socket_fd(-1), _epoll_fd(-1), _data_plane(dp) {
     config cfg = dp._control_plane.get_config();
@@ -28,7 +30,7 @@ udp_server::~udp_server() {
 void udp_server::setup(const std::string &ip, int port) {
     _socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (_socket_fd < 0) {
-        throw std::runtime_error("Failed to create socket");
+        throw udp_server_exception("Failed to create socket");
     }
 
     sockaddr_in server_addr{};
@@ -36,28 +38,28 @@ void udp_server::setup(const std::string &ip, int port) {
     server_addr.sin_port = htons(port);
     if (inet_pton(AF_INET, ip.c_str(), &server_addr.sin_addr) != 1) {
         close(_socket_fd);
-        throw std::runtime_error("Invalid IP address");
+        throw udp_server_exception("Invalid IP address");
     }
 
     if (bind(_socket_fd, (sockaddr *) &server_addr, sizeof(server_addr)) < 0) {
         close(_socket_fd);
-        throw std::runtime_error("Failed to bind socket");
+        throw udp_server_exception("Failed to bind socket");
     }
 
     int flags = fcntl(_socket_fd, F_GETFL, 0);
     if (flags < 0) {
         close(_socket_fd);
-        throw std::runtime_error("fcntl F_GETFL failed");
+        throw udp_server_exception("fcntl F_GETFL failed");
     }
     if (fcntl(_socket_fd, F_SETFL, flags | O_NONBLOCK) < 0) {
         close(_socket_fd);
-        throw std::runtime_error("fcntl F_SETFL O_NONBLOCK failed");
+        throw udp_server_exception("fcntl F_SETFL O_NONBLOCK failed");
     }
 
     _epoll_fd = epoll_create1(0);
     if (_epoll_fd < 0) {
         close(_socket_fd);
-        throw std::runtime_error("Failed to create epoll");
+        throw udp_server_exception("Failed to create epoll");
     }
 
     epoll_event event;
@@ -67,7 +69,7 @@ void udp_server::setup(const std::string &ip, int port) {
     if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, _socket_fd, &event) < 0) {
         close(_socket_fd);
         close(_epoll_fd);
-        throw std::runtime_error("Failed to add socket to epoll");
+        throw udp_server_exception("Failed to add socket to epoll");
     }
 }
 
@@ -109,7 +111,11 @@ void udp_server::handle_packet(std::vector<uint8_t> &buffer) {
 
         buffer.resize(bytes_received);
 
-        std::string response = _data_plane.handle_packet(buffer);
+        std::expected<std::string, data_plane_error> packet_result = _data_plane.handle_packet(buffer);
+
+        std::string response = packet_result.has_value()
+                                       ? packet_result.value()
+                                       : std::format("Error: {}", magic_enum::enum_name(packet_result.error()));
 
         send_response(response, client_addr);
     }

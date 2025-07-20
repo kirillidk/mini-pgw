@@ -12,7 +12,7 @@
 
 class config_exception : public std::runtime_error {
 public:
-    explicit config_exception(const std::string &message) : std::runtime_error("Config error: " + message) {}
+    explicit config_exception(const std::string &message) : std::runtime_error("config_exception: " + message) {}
 };
 
 class config {

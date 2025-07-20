@@ -1,10 +1,17 @@
 #pragma once
 
 #include <arpa/inet.h>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
 class data_plane;
+
+class udp_server_exception : public std::runtime_error {
+public:
+    explicit udp_server_exception(const std::string &message) :
+        std::runtime_error("udp_server_exception: " + message) {}
+};
 
 class udp_server {
 private:
