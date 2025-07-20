@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <data_plane.hpp>
+class data_plane;
 
 class udp_server {
 private:
@@ -12,7 +12,7 @@ private:
     static constexpr int BUFFER_SIZE = 1024;
 
 public:
-    udp_server(const std::string &ip, int port, data_plane &dp);
+    udp_server(data_plane &dp);
     ~udp_server();
 
     udp_server(const udp_server &) = delete;

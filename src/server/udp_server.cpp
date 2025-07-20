@@ -7,12 +7,13 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <config.hpp>
+#include <data_plane.hpp>
 #include <udp_server.hpp>
-#include <utility.hpp>
 
-udp_server::udp_server(const std::string &ip, int port, data_plane &dp) :
-    _socket_fd(-1), _epoll_fd(-1), _data_plane(dp) {
-    setup(ip, port);
+udp_server::udp_server(data_plane &dp) : _socket_fd(-1), _epoll_fd(-1), _data_plane(dp) {
+    config cfg = dp._control_plane.get_config();
+    setup(cfg.get_ip().value(), cfg.get_port().value());
 }
 
 udp_server::~udp_server() {

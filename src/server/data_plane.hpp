@@ -6,6 +6,8 @@
 
 #include <control_plane.hpp>
 
+class udp_server;
+
 class data_plane {
 public:
     using Packet = std::vector<uint8_t>;
@@ -16,5 +18,7 @@ public:
     std::string handle_packet(const Packet &packet);
 
 private:
+    friend udp_server;
+
     control_plane &_control_plane;
 };
