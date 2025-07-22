@@ -3,14 +3,16 @@
 #include <config.hpp>
 #include <control_plane.hpp>
 #include <data_plane.hpp>
+#include <thread_pool.hpp>
 #include <udp_server.hpp>
-
 
 int main() {
     try {
         config cfg("config.json");
 
-        control_plane cp(cfg);
+        thread_pool tp{};
+
+        control_plane cp(cfg, tp);
         data_plane dp(cp);
 
         udp_server server(dp);
