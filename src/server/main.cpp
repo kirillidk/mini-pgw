@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include <config.hpp>
+#include <event_bus.hpp>
 #include <packet_manager.hpp>
 #include <session_manager.hpp>
 #include <thread_pool.hpp>
@@ -11,7 +12,8 @@ namespace di = boost::di;
 
 int main() {
     try {
-        auto injector = di::make_injector(di::bind<std::filesystem::path>.to(std::filesystem::path{"config.json"}));
+        auto injector = di::make_injector(di::bind<std::filesystem::path>.to(std::filesystem::path{"config.json"}),
+                                          di::bind<std::size_t>.to(size_t(std::thread::hardware_concurrency())));
         auto server = injector.create<std::shared_ptr<udp_server>>();
         server->run();
 

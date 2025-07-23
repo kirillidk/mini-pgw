@@ -1,3 +1,5 @@
+#pragma once
+
 #include <condition_variable>
 #include <functional>
 #include <future>
@@ -9,7 +11,7 @@
 
 class thread_pool {
 public:
-    explicit thread_pool(size_t num_threads = std::thread::hardware_concurrency());
+    explicit thread_pool(size_t threads_num = std::thread::hardware_concurrency());
     ~thread_pool();
 
     thread_pool(const thread_pool &) = delete;

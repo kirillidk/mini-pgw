@@ -7,8 +7,8 @@ thread_pool::~thread_pool() {
     _cv.notify_all();
 }
 
-thread_pool::thread_pool(size_t num_threads) {
-    for (size_t i = 0; i < num_threads; ++i) {
+thread_pool::thread_pool(size_t threads_num) {
+    for (size_t i = 0; i < threads_num; ++i) {
         _workers.emplace_back([this](std::stop_token st) {
             while (true) {
                 std::function<void()> task;
