@@ -7,15 +7,15 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include <config.hpp>
-#include <data_plane.hpp>
 #include <udp_server.hpp>
 
+#include <config.hpp>
 #include <magic_enum/magic_enum.hpp>
+#include <packet_manager.hpp>
 
-udp_server::udp_server(data_plane &dp) : _socket_fd(-1), _epoll_fd(-1), _data_plane(dp) {
-    config cfg = dp._control_plane.get_config();
-    setup(cfg.get_ip().value(), cfg.get_port().value());
+udp_server::udp_server(std::shared_ptr<config> config, std::shared_ptr<packet_manager> packet_manager) :
+    _socket_fd(-1), _epoll_fd(-1), _config(std::move(config)), _packet_manager(std::move(packet_manager)) {
+    setup(_config->get_ip().value(), _config->get_port().value());
 }
 
 udp_server::~udp_server() {
@@ -111,7 +111,7 @@ void udp_server::handle_packet(std::vector<uint8_t> &buffer) {
 
         buffer.resize(bytes_received);
 
-        std::expected<std::string, data_plane_error> packet_result = _data_plane.handle_packet(buffer);
+        std::expected<std::string, packet_manager_error> packet_result = _packet_manager->handle_packet(buffer);
 
         std::string response = packet_result.has_value()
                                        ? packet_result.value()

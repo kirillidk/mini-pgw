@@ -1,11 +1,13 @@
 #pragma once
 
 #include <arpa/inet.h>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
-class data_plane;
+class config;
+class packet_manager;
 
 class udp_server_exception : public std::runtime_error {
 public:
@@ -19,12 +21,11 @@ private:
     static constexpr int BUFFER_SIZE = 1024;
 
 public:
-    udp_server(data_plane &dp);
+    udp_server(std::shared_ptr<config> config, std::shared_ptr<packet_manager> packet_manager);
     ~udp_server();
 
     udp_server(const udp_server &) = delete;
     udp_server &operator=(const udp_server &) = delete;
-
     udp_server(udp_server &&) = delete;
     udp_server &operator=(udp_server &&) = delete;
 
@@ -40,5 +41,6 @@ private:
     int _socket_fd;
     int _epoll_fd;
 
-    data_plane &_data_plane;
+    std::shared_ptr<config> _config;
+    std::shared_ptr<packet_manager> _packet_manager;
 };

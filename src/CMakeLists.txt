@@ -20,5 +20,12 @@ if (NOT magic_enum_FOUND)
   FetchContent_MakeAvailable(magic_enum)
 endif()
 
+include(FetchContent)
+FetchContent_Declare(
+  boost_di
+  URL https://github.com/boost-ext/di/archive/refs/tags/v1.3.2.tar.gz
+)
+FetchContent_MakeAvailable(boost_di)
+
 add_subdirectory(common)
 add_subdirectory(server)
