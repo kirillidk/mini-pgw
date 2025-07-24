@@ -15,4 +15,5 @@ namespace utility {
     };
 
     [[nodiscard]] std::expected<std::string, parse_error> parse_imsi_from_bcd(const std::vector<uint8_t> &packet);
+    [[nodiscard]] std::string get_current_timestamp();
 } // namespace utility

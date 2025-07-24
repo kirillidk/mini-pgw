@@ -21,7 +21,7 @@ config::config(const std::filesystem::path &path) {
     _graceful_shutdown_rate = extract_value<uint32_t>(json_data, "graceful_shutdown_rate");
     _log_file = extract_value<std::filesystem::path>(json_data, "log_file");
     _log_level = extract_value<std::string>(json_data, "log_level");
-    _blacklist = extract_value<std::vector<std::string>>(json_data, "blacklist");
+    _blacklist = extract_value<std::unordered_set<std::string>>(json_data, "blacklist");
 }
 
 template<typename T>
@@ -46,4 +46,4 @@ std::optional<std::filesystem::path> config::get_log_file() const { return _log_
 
 std::optional<std::string> config::get_log_level() const { return _log_level; }
 
-std::optional<std::vector<std::string>> config::get_blacklist() const { return _blacklist; }
+std::optional<std::unordered_set<std::string>> config::get_blacklist() const { return _blacklist; }

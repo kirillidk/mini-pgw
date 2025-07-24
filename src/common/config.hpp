@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <vector>
+#include <unordered_set>
 
 #include <nlohmann/json.hpp>
 
@@ -26,7 +26,7 @@ public:
     [[nodiscard]] std::optional<uint32_t> get_graceful_shutdown_rate() const;
     [[nodiscard]] std::optional<std::filesystem::path> get_log_file() const;
     [[nodiscard]] std::optional<std::string> get_log_level() const;
-    [[nodiscard]] std::optional<std::vector<std::string>> get_blacklist() const;
+    [[nodiscard]] std::optional<std::unordered_set<std::string>> get_blacklist() const;
 
 private:
     template<typename T>
@@ -40,5 +40,5 @@ private:
     std::optional<uint32_t> _graceful_shutdown_rate;
     std::optional<std::filesystem::path> _log_file;
     std::optional<std::string> _log_level;
-    std::optional<std::vector<std::string>> _blacklist;
+    std::optional<std::unordered_set<std::string>> _blacklist;
 };

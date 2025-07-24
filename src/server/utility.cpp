@@ -2,6 +2,9 @@
 
 #include <utility.hpp>
 
+#include <chrono>
+#include <format>
+
 namespace utility {
 
     std::expected<std::string, parse_error> parse_imsi_from_bcd(const std::vector<uint8_t> &packet) {
@@ -50,6 +53,15 @@ namespace utility {
         }
 
         return imsi;
+    }
+
+    std::string get_current_timestamp() {
+        auto now = std::chrono::system_clock::now();
+        auto ts = std::chrono::floor<std::chrono::seconds>(now);
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - ts).count();
+        auto lt = std::chrono::current_zone()->to_local(ts);
+
+        return std::format("{:%Y-%m-%d %H:%M:%S}.{:03}", lt, ms);
     }
 
 } // namespace utility

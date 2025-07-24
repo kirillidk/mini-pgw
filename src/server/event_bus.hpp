@@ -1,16 +1,15 @@
 #pragma once
 
 #include <functional>
-#include <memory>
+#include <string>
 #include <typeindex>
 #include <unordered_map>
 #include <vector>
 
-#include <session.hpp>
-
 namespace events {
     struct create_session_event {};
     struct delete_session_event {};
+    struct reject_session_event {};
 } // namespace events
 
 class event_bus {
@@ -22,24 +21,23 @@ public:
     void subscribe(F &&func) {
         auto type_index = std::type_index(typeid(EventType));
 
-        auto wrapper = [f = std::forward<F>(func)](const std::shared_ptr<session> &session) { f(session); };
+        auto wrapper = [f = std::forward<F>(func)](std::string imsi) { f(std::move(imsi)); };
 
         _handlers[type_index].emplace_back(std::move(wrapper));
     }
 
     template<typename EventType>
-    void publish(const std::shared_ptr<session> &session) {
+    void publish(const std::string &imsi) {
         auto type_index = std::type_index(typeid(EventType));
         if (not _handlers.contains(type_index)) {
             return;
         }
 
         for (const auto &handler: _handlers[type_index]) {
-            handler(session);
+            handler(imsi);
         }
     }
 
 private:
-    std::unordered_map<std::type_index, std::vector<std::function<void(const std::shared_ptr<session> &session)>>>
-            _handlers;
+    std::unordered_map<std::type_index, std::vector<std::function<void(std::string)>>> _handlers;
 };

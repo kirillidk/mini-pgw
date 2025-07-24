@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include <cdr_writer.hpp>
 #include <config.hpp>
 #include <event_bus.hpp>
 #include <packet_manager.hpp>
@@ -14,6 +15,9 @@ int main() {
     try {
         auto injector = di::make_injector(di::bind<std::filesystem::path>.to(std::filesystem::path{"config.json"}),
                                           di::bind<std::size_t>.to(size_t(std::thread::hardware_concurrency())));
+
+        auto writer = injector.create<std::shared_ptr<cdr_writer>>();
+
         auto server = injector.create<std::shared_ptr<udp_server>>();
         server->run();
 
