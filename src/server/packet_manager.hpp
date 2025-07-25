@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <expected>
 #include <memory>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -18,13 +19,13 @@ enum class packet_manager_error {
 
 class packet_manager {
 public:
-    using Packet = std::vector<uint8_t>;
+    using Packet = std::span<const uint8_t>;
 
     explicit packet_manager(std::shared_ptr<config> config, std::shared_ptr<event_bus> event_bus,
                             std::shared_ptr<session_manager> session_manager, std::shared_ptr<logger> logger);
 
 public:
-    std::expected<std::string, packet_manager_error> handle_packet(const Packet &packet);
+    std::expected<std::string, packet_manager_error> handle_packet(Packet packet);
 
 private:
     std::shared_ptr<config> _config;

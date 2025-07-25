@@ -2,7 +2,7 @@
 #include <cstring>
 #include <fcntl.h>
 #include <format>
-#include <iostream>
+#include <span>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -101,8 +101,8 @@ void udp_server::setup(const std::string &ip, int port) {
 void udp_server::run() {
     _logger->info("Starting UDP server main loop");
 
-    std::vector<epoll_event> events(MAX_EVENTS);
-    std::vector<uint8_t> buffer(BUFFER_SIZE);
+    std::array<epoll_event, MAX_EVENTS> events;
+    std::array<uint8_t, BUFFER_SIZE> buffer;
 
     while (true) {
         _logger->debug("Waiting for events...");
@@ -116,16 +116,26 @@ void udp_server::run() {
         _logger->debug("Received " + std::to_string(event_count) + " events");
 
         for (int i = 0; i < event_count; ++i) {
+            epoll_event &event = events[i];
+
             if (events[i].data.fd == _socket_fd) {
-                handle_packet(buffer);
+                if (event.events & EPOLLIN) {
+                    read_packets(buffer);
+                }
+
+                if ((event.events & EPOLLOUT) && not _response_queue.empty()) {
+                    send_pending_responses();
+                }
             }
         }
+
+        process_requests();
     }
 
     _logger->info("UDP server main loop exited");
 }
 
-void udp_server::handle_packet(std::vector<uint8_t> &buffer) {
+void udp_server::read_packets(std::array<uint8_t, BUFFER_SIZE> &buffer) {
     sockaddr_in client_addr{};
     socklen_t client_len = sizeof(client_addr);
 
@@ -134,14 +144,21 @@ void udp_server::handle_packet(std::vector<uint8_t> &buffer) {
                 recvfrom(_socket_fd, buffer.data(), BUFFER_SIZE, MSG_DONTWAIT, (sockaddr *) &client_addr, &client_len);
 
         if (bytes_received < 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                break; // No more data available
-            }
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+                break;
             _logger->error("recvfrom error: " + std::string(strerror(errno)));
             break;
         }
 
-        buffer.resize(bytes_received);
+        if (bytes_received == 0) {
+            _logger->debug("Received empty packet, ignoring");
+            continue;
+        }
+
+        if (static_cast<size_t>(bytes_received) > buffer.size()) {
+            _logger->error("Received packet larger than buffer: " + std::to_string(bytes_received));
+            continue;
+        }
 
         char client_ip[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, INET_ADDRSTRLEN);
@@ -150,26 +167,74 @@ void udp_server::handle_packet(std::vector<uint8_t> &buffer) {
         _logger->debug("Received " + std::to_string(bytes_received) + " bytes from " + std::string(client_ip) + ":" +
                        std::to_string(client_port));
 
-        std::expected<std::string, packet_manager_error> packet_result = _packet_manager->handle_packet(buffer);
+        _request_queue.push({std::span(buffer.data(), bytes_received), client_addr});
 
-        std::string response = packet_result.has_value()
-                                       ? packet_result.value()
-                                       : std::format("Error: {}", magic_enum::enum_name(packet_result.error()));
-
-        _logger->debug("Sending response: " + response + " to " + std::string(client_ip) + ":" +
-                       std::to_string(client_port));
-
-        send_response(response, client_addr);
+        _logger->debug("Queued packet (" + std::to_string(bytes_received) + " bytes)");
     }
 }
 
-void udp_server::send_response(const std::string &response, const sockaddr_in &client_addr) {
-    ssize_t bytes_sent = sendto(_socket_fd, response.data(), response.size(), 0, (const sockaddr *) &client_addr,
-                                sizeof(client_addr));
+void udp_server::send_pending_responses() {
+    int32_t sent_responses = 0;
 
-    if (bytes_sent < 0) {
-        _logger->error("Failed to send response: " + std::string(strerror(errno)));
-    } else {
-        _logger->debug("Response sent successfully (" + std::to_string(bytes_sent) + " bytes)");
+    while (not _response_queue.empty()) {
+        auto &resp = _response_queue.front();
+
+        ssize_t bytes_sent = sendto(_socket_fd, resp.data.data(), resp.data.size(), MSG_DONTWAIT,
+                                    (const sockaddr *) &resp.client_addr, sizeof(resp.client_addr));
+
+        if (bytes_sent < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                break;
+            }
+            _logger->error("sendto error: " + std::string(strerror(errno)));
+            _response_queue.pop();
+            continue;
+        }
+
+        _response_queue.pop();
+        sent_responses++;
     }
+
+    if (_response_queue.empty()) {
+        modify_epoll_events(EPOLLIN);
+        _logger->debug("Disabled EPOLLOUT, now only monitoring EPOLLIN on socket");
+    }
+
+    if (sent_responses > 0) {
+        _logger->debug("Sent " + std::to_string(sent_responses) + " responses");
+    }
+}
+
+void udp_server::process_requests() {
+    int32_t processed_requests = 0;
+
+    while (not _request_queue.empty() && processed_requests < MAX_BATCH) {
+        auto req = std::move(_request_queue.front());
+        _request_queue.pop();
+
+        auto result = _packet_manager->handle_packet(req.data);
+
+        std::string response =
+                result.has_value() ? result.value() : std::format("Error: {}", magic_enum::enum_name(result.error()));
+
+        _response_queue.push({std::move(response), req.client_addr});
+
+        processed_requests++;
+    }
+
+    if (processed_requests > 0) {
+        _logger->debug("Processed " + std::to_string(processed_requests) + " requests");
+
+        if (not _response_queue.empty()) {
+            modify_epoll_events(EPOLLIN | EPOLLOUT);
+            _logger->debug("Enabled EPOLLOUT on socket");
+        }
+    }
+}
+
+void udp_server::modify_epoll_events(uint32_t events) {
+    epoll_event event;
+    event.events = events;
+    event.data.fd = _socket_fd;
+    epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, _socket_fd, &event);
 }

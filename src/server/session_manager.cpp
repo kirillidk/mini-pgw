@@ -23,6 +23,7 @@ void session_manager::setup() {
 
         _thread_pool->enqueue([this, imsi = std::move(imsi)]() {
             std::chrono::seconds timeout = std::chrono::seconds(_config->get_session_timeout_sec().value());
+
             _logger->debug("Session for IMSI " + imsi + " will expire in " + std::to_string(timeout.count()) +
                            " seconds");
 
@@ -49,6 +50,7 @@ std::shared_ptr<session> session_manager::create_session(const std::string &imsi
     _sessions[imsi] = session::create(imsi);
     _logger->debug("Session created successfully for IMSI: " + imsi +
                    " (total sessions: " + std::to_string(_sessions.size()) + ")");
+
     return _sessions[imsi];
 }
 

@@ -20,7 +20,7 @@ packet_manager::packet_manager(std::shared_ptr<config> config, std::shared_ptr<e
     _logger->info("Packet manager initialized");
 }
 
-std::expected<std::string, packet_manager_error> packet_manager::handle_packet(const Packet &packet) {
+std::expected<std::string, packet_manager_error> packet_manager::handle_packet(Packet packet) {
     _logger->debug("Handling packet of size: " + std::to_string(packet.size()));
 
     std::expected<std::string, utility::parse_error> imsi = utility::parse_imsi_from_bcd(packet);
@@ -37,6 +37,7 @@ std::expected<std::string, packet_manager_error> packet_manager::handle_packet(c
 
     if (_session_manager->in_blacklist(imsi_str)) {
         _logger->info("IMSI " + imsi_str + " is in blacklist, rejecting session");
+
         _event_bus->publish<events::reject_session_event>(imsi_str);
         return "rejected";
     }
@@ -45,10 +46,12 @@ std::expected<std::string, packet_manager_error> packet_manager::handle_packet(c
 
     if (result) {
         _logger->info("Session created for IMSI: " + imsi_str);
+
         _event_bus->publish<events::create_session_event>(imsi_str);
         return "created";
     } else {
         _logger->warning("Failed to create session for IMSI: " + imsi_str + " (session already exists)");
+
         _event_bus->publish<events::reject_session_event>(imsi_str);
         return "rejected";
     }

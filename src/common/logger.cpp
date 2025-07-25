@@ -1,13 +1,10 @@
 #include <config.hpp>
 #include <logger.hpp>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/log/utility/setup/console.hpp>
 #include <boost/log/utility/setup/file.hpp>
-
-#include <boost/algorithm/string.hpp>
-
-#include <iostream>
 
 logger::logger(std::shared_ptr<config> config) : _config(std::move(config)) {
     auto log_file = _config->get_log_file();

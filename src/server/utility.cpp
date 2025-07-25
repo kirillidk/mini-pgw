@@ -7,7 +7,7 @@
 
 namespace utility {
 
-    std::expected<std::string, parse_error> parse_imsi_from_bcd(const std::vector<uint8_t> &packet) {
+    std::expected<std::string, parse_error> parse_imsi_from_bcd(std::span<const uint8_t> packet) {
         if (packet.size() < 4) {
             return std::unexpected(parse_error::packet_too_short);
         }

@@ -2,8 +2,8 @@
 
 #include <cstdint>
 #include <expected>
+#include <span>
 #include <string>
-#include <vector>
 
 namespace utility {
     enum class parse_error {
@@ -14,6 +14,6 @@ namespace utility {
         invalid_imsi_length
     };
 
-    [[nodiscard]] std::expected<std::string, parse_error> parse_imsi_from_bcd(const std::vector<uint8_t> &packet);
+    [[nodiscard]] std::expected<std::string, parse_error> parse_imsi_from_bcd(std::span<const uint8_t> packet);
     [[nodiscard]] std::string get_current_timestamp();
 } // namespace utility
