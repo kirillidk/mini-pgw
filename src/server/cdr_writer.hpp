@@ -7,6 +7,7 @@
 
 class config;
 class event_bus;
+class logger;
 
 enum class cdr_action { created, deleted, rejected };
 
@@ -24,7 +25,8 @@ public:
 
 class cdr_writer {
 public:
-    explicit cdr_writer(std::shared_ptr<config> config, std::shared_ptr<event_bus> event_bus);
+    explicit cdr_writer(std::shared_ptr<config> config, std::shared_ptr<event_bus> event_bus,
+                        std::shared_ptr<logger> logger);
     ~cdr_writer();
 
     cdr_writer(const cdr_writer &) = delete;
@@ -40,6 +42,7 @@ private:
 private:
     std::shared_ptr<config> _config;
     std::shared_ptr<event_bus> _event_bus;
+    std::shared_ptr<logger> _logger;
 
     std::ofstream _file;
     std::mutex _file_mutex;

@@ -61,7 +61,7 @@ namespace utility {
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - ts).count();
         auto lt = std::chrono::current_zone()->to_local(ts);
 
-        return std::format("{:%Y-%m-%d %H:%M:%S}.{:03}", lt, ms);
+        return std::format("{:%Y-%m-%d %H:%M:%S}.{:06}", lt, ms);
     }
 
 } // namespace utility

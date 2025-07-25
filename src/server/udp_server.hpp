@@ -8,6 +8,7 @@
 
 class config;
 class packet_manager;
+class logger;
 
 class udp_server_exception : public std::runtime_error {
 public:
@@ -21,7 +22,8 @@ private:
     static constexpr int BUFFER_SIZE = 1024;
 
 public:
-    udp_server(std::shared_ptr<config> config, std::shared_ptr<packet_manager> packet_manager);
+    udp_server(std::shared_ptr<config> config, std::shared_ptr<packet_manager> packet_manager,
+               std::shared_ptr<logger> logger);
     ~udp_server();
 
     udp_server(const udp_server &) = delete;
@@ -43,4 +45,5 @@ private:
 
     std::shared_ptr<config> _config;
     std::shared_ptr<packet_manager> _packet_manager;
+    std::shared_ptr<logger> _logger;
 };

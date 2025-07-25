@@ -3,6 +3,7 @@
 #include <cdr_writer.hpp>
 #include <config.hpp>
 #include <event_bus.hpp>
+#include <logger.hpp>
 #include <packet_manager.hpp>
 #include <session_manager.hpp>
 #include <thread_pool.hpp>
