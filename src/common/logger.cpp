@@ -19,6 +19,8 @@ logger::logger(std::shared_ptr<config> config) : _config(std::move(config)) {
     }
 
     setup(log_file.value(), log_level.value());
+
+    BOOST_LOG_TRIVIAL(info) << "Logger initialized";
 }
 
 void logger::setup(const std::filesystem::path &log_file, const std::string &log_level_str) {

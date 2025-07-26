@@ -11,10 +11,12 @@ cdr_writer::cdr_writer(std::shared_ptr<config> config, std::shared_ptr<event_bus
                        std::shared_ptr<logger> logger) :
     _config(std::move(config)), _event_bus(std::move(event_bus)), _logger(std::move(logger)) {
     setup();
+
+    _logger->info("CDR writer initialized");
 }
 
 void cdr_writer::setup() {
-    _logger->info("Setting up CDR writer");
+    _logger->debug("Setting up CDR writer");
 
     auto cdr_file_path = _config->get_cdr_file();
     if (cdr_file_path.has_value()) {
@@ -51,7 +53,7 @@ void cdr_writer::setup() {
         write_record(std::move(record));
     });
 
-    _logger->info("CDR writer setup completed");
+    _logger->debug("CDR writer setup completed");
 }
 
 cdr_writer::~cdr_writer() {
@@ -61,7 +63,7 @@ cdr_writer::~cdr_writer() {
         _file.close();
     }
 
-    _logger->debug("CDR writer is destroyed");
+    _logger->info("CDR writer destroyed");
 }
 
 void cdr_writer::write_record(const cdr_record &record) {

@@ -2,19 +2,16 @@
 
 #include <atomic>
 #include <memory>
+#include <stdexcept>
 #include <string>
+#include <thread>
 
-#include <boost/beast.hpp>
-
-namespace beast = boost::beast;
-namespace http = beast::http;
-namespace net = boost::asio;
-using tcp = net::ip::tcp;
+#include <httplib.h>
 
 class config;
 class session_manager;
-class logger;
 class event_bus;
+class logger;
 
 class http_server_exception : public std::runtime_error {
 public:
@@ -22,10 +19,10 @@ public:
         std::runtime_error("http_server_exception: " + message) {}
 };
 
-class http_server : public std::enable_shared_from_this<http_server> {
+class http_server {
 public:
-    http_server(std::shared_ptr<config> config, std::shared_ptr<session_manager> session_manager,
-                std::shared_ptr<logger> logger, std::shared_ptr<event_bus> event_bus);
+    explicit http_server(std::shared_ptr<config> config, std::shared_ptr<session_manager> session_manager,
+                         std::shared_ptr<event_bus> event_bus, std::shared_ptr<logger> logger);
     ~http_server();
 
     http_server(const http_server &) = delete;
@@ -33,50 +30,25 @@ public:
     http_server(http_server &&) = delete;
     http_server &operator=(http_server &&) = delete;
 
-    void run();
+    void start();
     void stop();
 
 private:
-    class session : public std::enable_shared_from_this<session> {
-    public:
-        session(tcp::socket &&socket, std::shared_ptr<http_server> server);
+    void setup_routes();
 
-        void run();
-
-    private:
-        void do_read();
-        void on_read(beast::error_code ec, std::size_t bytes_transferred);
-        void on_write(beast::error_code ec, std::size_t bytes_transferred, bool close);
-
-        [[nodiscard]] http::response<http::string_body> handle_request(http::request<http::string_body> &&req);
-
-        [[nodiscard]] http::response<http::string_body> handle_check_subscriber(const std::string &imsi);
-        [[nodiscard]] http::response<http::string_body> handle_stop();
-
-        [[nodiscard]] http::response<http::string_body> bad_request(const std::string &why);
-        [[nodiscard]] http::response<http::string_body> not_found(const std::string &target);
-        [[nodiscard]] http::response<http::string_body> server_error(const std::string &what);
-
-    private:
-        beast::tcp_stream _stream;
-        beast::flat_buffer _buffer;
-        http::request<http::string_body> _req;
-        std::shared_ptr<http_server> _server;
-    };
-
-    void do_accept();
-    void on_accept(beast::error_code ec, tcp::socket socket);
-
-    void init_setup();
-    void setup_event_handlers();
+    void handle_check_subscriber(const httplib::Request &req, httplib::Response &res);
+    void handle_stop(const httplib::Request &req, httplib::Response &res);
 
 private:
     std::shared_ptr<config> _config;
     std::shared_ptr<session_manager> _session_manager;
-    std::shared_ptr<logger> _logger;
     std::shared_ptr<event_bus> _event_bus;
+    std::shared_ptr<logger> _logger;
 
-    net::io_context _ioc;
-    tcp::acceptor _acceptor;
-    std::atomic<bool> _stop_requested{false};
+    std::unique_ptr<httplib::Server> _server;
+    std::unique_ptr<std::thread> _server_thread;
+    std::atomic<bool> _running{false};
+
+    std::string _ip;
+    uint32_t _port;
 };

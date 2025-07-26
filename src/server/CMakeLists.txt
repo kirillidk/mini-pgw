@@ -17,6 +17,7 @@ target_compile_options(${SERVER_LIB} PUBLIC "-Werror" "-Wall" "-Wextra" "-Wpedan
 target_link_libraries(${SERVER_LIB} PUBLIC
         ${COMMON_LIB}
         magic_enum::magic_enum
+        httplib::httplib
 )
 
 add_executable(server ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)

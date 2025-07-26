@@ -20,7 +20,7 @@ public:
 
 public:
     explicit logger(std::shared_ptr<config> config);
-    ~logger() = default;
+    ~logger() { BOOST_LOG_TRIVIAL(info) << "Logger destroyed"; }
 
     logger(const logger &) = delete;
     logger &operator=(const logger &) = delete;

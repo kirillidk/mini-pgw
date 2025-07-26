@@ -54,7 +54,7 @@ private:
     };
 
 private:
-    void setup(const std::string &ip, int port);
+    void init_setup(const std::string &ip, int port);
     void setup_stop_event();
     void setup_event_handlers();
 

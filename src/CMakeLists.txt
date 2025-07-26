@@ -6,6 +6,12 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(boost_di)
 
+FetchContent_Declare(
+  cpp_httplib
+  URL https://github.com/yhirose/cpp-httplib/archive/refs/tags/v0.23.1.tar.gz
+)
+FetchContent_MakeAvailable(cpp_httplib)
+
 find_package(Boost COMPONENTS log log_setup)
 if (NOT Boost_FOUND)
   FetchContent_Declare(

@@ -20,7 +20,7 @@ packet_manager::packet_manager(std::shared_ptr<config> config, std::shared_ptr<e
     _logger->info("Packet manager initialized");
 }
 
-packet_manager::~packet_manager() { _logger->debug("Packet manager is destroyed"); }
+packet_manager::~packet_manager() { _logger->info("Packet manager is destroyed"); }
 
 std::expected<std::string, packet_manager_error> packet_manager::handle_packet(Packet packet) {
     _logger->debug("Handling packet of size: " + std::to_string(packet.size()));

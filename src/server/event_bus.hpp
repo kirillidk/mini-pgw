@@ -10,6 +10,8 @@
 
 #include <thread_pool.hpp>
 
+#include <logger.hpp>
+
 namespace events {
     struct create_session_event {
         using param_type = std::tuple<std::string>;
@@ -30,7 +32,17 @@ namespace events {
 
 class event_bus {
 public:
-    explicit event_bus(std::shared_ptr<thread_pool> thread_pool) : _thread_pool(std::move(thread_pool)) {}
+    explicit event_bus(std::shared_ptr<thread_pool> thread_pool, std::shared_ptr<logger> logger) :
+        _thread_pool(std::move(thread_pool)), _logger(std::move(logger)) {
+        _logger->info("Event bus initialized");
+    }
+    ~event_bus() { _logger->info("Event bus destroyed"); }
+
+    void stop() {
+        if (_thread_pool) {
+            _thread_pool.reset();
+        }
+    }
 
 public:
     template<typename EventType, typename F>
@@ -59,5 +71,6 @@ public:
 
 private:
     std::shared_ptr<thread_pool> _thread_pool;
+    std::shared_ptr<logger> _logger;
     std::unordered_map<std::type_index, std::vector<std::any>> _handlers;
 };

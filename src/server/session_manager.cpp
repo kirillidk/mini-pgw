@@ -14,7 +14,7 @@ session_manager::session_manager(std::shared_ptr<config> config, std::shared_ptr
     setup_event_handlers();
 }
 
-session_manager::~session_manager() { _logger->debug("Session manager is destroyed"); }
+session_manager::~session_manager() { _logger->info("Session manager is destroyed"); }
 
 void session_manager::setup_event_handlers() {
     _logger->info("Setting up session manager event handlers");

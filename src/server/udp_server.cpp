@@ -25,11 +25,13 @@ udp_server::udp_server(std::shared_ptr<config> config, std::shared_ptr<packet_ma
     auto ip = _config->get_ip().value();
     auto port = _config->get_port().value();
 
-    _logger->info("Initializing UDP server on " + ip + ":" + std::to_string(port));
+    _logger->debug("Initializing UDP server on " + ip + ":" + std::to_string(port));
 
-    setup(ip, port);
+    init_setup(ip, port);
     setup_stop_event();
     setup_event_handlers();
+
+    _logger->info("Initialized UDP server on " + ip + ":" + std::to_string(port));
 }
 
 udp_server::~udp_server() {
@@ -48,10 +50,10 @@ udp_server::~udp_server() {
         _logger->debug("Stop event fd closed");
     }
 
-    _logger->debug("Udp server is destroyed");
+    _logger->info("Udp server destroyed");
 }
 
-void udp_server::setup(const std::string &ip, int port) {
+void udp_server::init_setup(const std::string &ip, int port) {
     _logger->debug("Creating UDP socket");
     _socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (_socket_fd < 0) {
@@ -107,7 +109,7 @@ void udp_server::setup(const std::string &ip, int port) {
         throw udp_server_exception("Failed to add socket to epoll");
     }
 
-    _logger->info("UDP server setup completed successfully");
+    _logger->debug("UDP server init_setup completed successfully");
 }
 
 void udp_server::setup_stop_event() {
@@ -136,7 +138,7 @@ void udp_server::setup_stop_event() {
 }
 
 void udp_server::setup_event_handlers() {
-    _logger->info("Setting up udp_server event handlers");
+    _logger->debug("Setting up udp_server event handlers");
 
     _event_bus->subscribe<events::graceful_shutdown_event>([this]() {
         _logger->debug("Scheduling graceful shutdown for udp server");
@@ -144,7 +146,7 @@ void udp_server::setup_event_handlers() {
         stop();
     });
 
-    _logger->info("UDP server event handlers setup completed");
+    _logger->debug("UDP server event handlers setup completed");
 }
 
 void udp_server::run() {
