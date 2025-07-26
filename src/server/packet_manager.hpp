@@ -23,6 +23,7 @@ public:
 
     explicit packet_manager(std::shared_ptr<config> config, std::shared_ptr<event_bus> event_bus,
                             std::shared_ptr<session_manager> session_manager, std::shared_ptr<logger> logger);
+    ~packet_manager();
 
 public:
     std::expected<std::string, packet_manager_error> handle_packet(Packet packet);

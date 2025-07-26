@@ -5,6 +5,8 @@ thread_pool::~thread_pool() {
         w.request_stop();
     }
     _cv.notify_all();
+
+    _logger->debug("Thread pool is destroyed");
 }
 
 thread_pool::thread_pool(size_t threads_num) {

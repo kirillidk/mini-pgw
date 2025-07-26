@@ -26,8 +26,7 @@ class udp_server {
 private:
 public:
     udp_server(std::shared_ptr<config> config, std::shared_ptr<packet_manager> packet_manager,
-               std::shared_ptr<logger> logger, std::shared_ptr<event_bus> event_bus,
-               std::shared_ptr<thread_pool> thread_pool);
+               std::shared_ptr<logger> logger, std::shared_ptr<event_bus> event_bus);
     ~udp_server();
 
     udp_server(const udp_server &) = delete;
@@ -57,6 +56,7 @@ private:
 private:
     void setup(const std::string &ip, int port);
     void setup_stop_event();
+    void setup_event_handlers();
 
     void read_packets(std::array<uint8_t, BUFFER_SIZE> &buffer);
     void send_pending_responses();
@@ -69,7 +69,6 @@ private:
     std::shared_ptr<packet_manager> _packet_manager;
     std::shared_ptr<logger> _logger;
     std::shared_ptr<event_bus> _event_bus;
-    std::shared_ptr<thread_pool> _thread_pool;
 
     int _socket_fd;
     int _epoll_fd;

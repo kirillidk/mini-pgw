@@ -4,39 +4,39 @@
 #include <event_bus.hpp>
 #include <logger.hpp>
 #include <session.hpp>
-#include <thread_pool.hpp>
 
 session_manager::session_manager(std::shared_ptr<config> config, std::shared_ptr<event_bus> event_bus,
-                                 std::shared_ptr<thread_pool> thread_pool, std::shared_ptr<logger> logger) :
-    _config(std::move(config)), _event_bus(std::move(event_bus)), _thread_pool(std::move(thread_pool)),
-    _logger(std::move(logger)), _blacklist(_config->get_blacklist().value()) {
+                                 std::shared_ptr<logger> logger) :
+    _config(std::move(config)), _event_bus(std::move(event_bus)), _logger(std::move(logger)),
+    _blacklist(_config->get_blacklist().value()) {
 
     _logger->info("Session manager initialized with " + std::to_string(_blacklist.size()) + " blacklisted IMSIs");
-    setup();
+    setup_event_handlers();
 }
 
-void session_manager::setup() {
+session_manager::~session_manager() { _logger->debug("Session manager is destroyed"); }
+
+void session_manager::setup_event_handlers() {
     _logger->info("Setting up session manager event handlers");
 
     _event_bus->subscribe<events::create_session_event>([this](std::string imsi) {
         _logger->debug("Scheduling session deletion for IMSI: " + imsi);
 
-        _thread_pool->enqueue([this, imsi = std::move(imsi)]() {
-            std::chrono::seconds timeout = std::chrono::seconds(_config->get_session_timeout_sec().value());
+        std::chrono::seconds timeout = std::chrono::seconds(_config->get_session_timeout_sec().value());
 
-            _logger->debug("Session for IMSI " + imsi + " will expire in " + std::to_string(timeout.count()) +
-                           " seconds");
+        _logger->debug("Session for IMSI " + imsi + " will expire in " + std::to_string(timeout.count()) + " seconds");
 
-            std::this_thread::sleep_for(timeout);
+        std::this_thread::sleep_for(timeout);
 
-            delete_session(imsi);
-            _logger->info("Session expired for IMSI: " + imsi);
+        delete_session(imsi);
+        _logger->info("Session expired for IMSI: " + imsi);
 
-            _event_bus->publish<events::delete_session_event>(imsi);
-        });
+        _event_bus->publish<events::delete_session_event>(imsi);
     });
 
-    _logger->info("Session manager setup completed");
+    _event_bus->subscribe<events::graceful_shutdown_event>([this]() { graceful_shutdown_worker(); });
+
+    _logger->info("Session manager setup of event handlers is completed");
 }
 
 std::shared_ptr<session> session_manager::create_session(const std::string &imsi) {
@@ -87,19 +87,12 @@ bool session_manager::has_active_session(const std::string &imsi) const {
     return is_active;
 }
 
-void session_manager::initiate_graceful_shutdown() {
+void session_manager::graceful_shutdown_worker() {
     if (_shutdown_requested.exchange(true)) {
         _logger->warning("Graceful shutdown already requested, ignoring duplicate request");
         return;
     }
 
-    _logger->info("Initiating graceful shutdown");
-
-    _thread_pool->enqueue([this]() { graceful_shutdown_worker(); });
-}
-
-
-void session_manager::graceful_shutdown_worker() {
     _logger->info("Starting graceful shutdown worker");
 
     auto shutdown_rate = _config->get_graceful_shutdown_rate().value();

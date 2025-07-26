@@ -9,6 +9,8 @@
 #include <type_traits>
 #include <vector>
 
+#include <logger.hpp>
+
 class thread_pool {
 public:
     explicit thread_pool(size_t threads_num = std::thread::hardware_concurrency());
@@ -37,6 +39,8 @@ public:
     }
 
 private:
+    std::shared_ptr<logger> _logger;
+
     std::vector<std::jthread> _workers;
     std::queue<std::function<void()>> _tasks;
     std::mutex _queue_mutex;

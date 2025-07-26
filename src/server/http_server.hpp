@@ -14,6 +14,7 @@ using tcp = net::ip::tcp;
 class config;
 class session_manager;
 class logger;
+class event_bus;
 
 class http_server_exception : public std::runtime_error {
 public:
@@ -24,7 +25,7 @@ public:
 class http_server : public std::enable_shared_from_this<http_server> {
 public:
     http_server(std::shared_ptr<config> config, std::shared_ptr<session_manager> session_manager,
-                std::shared_ptr<logger> logger);
+                std::shared_ptr<logger> logger, std::shared_ptr<event_bus> event_bus);
     ~http_server();
 
     http_server(const http_server &) = delete;
@@ -66,10 +67,14 @@ private:
     void do_accept();
     void on_accept(beast::error_code ec, tcp::socket socket);
 
+    void init_setup();
+    void setup_event_handlers();
+
 private:
     std::shared_ptr<config> _config;
     std::shared_ptr<session_manager> _session_manager;
     std::shared_ptr<logger> _logger;
+    std::shared_ptr<event_bus> _event_bus;
 
     net::io_context _ioc;
     tcp::acceptor _acceptor;

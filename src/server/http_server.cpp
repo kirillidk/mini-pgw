@@ -1,9 +1,9 @@
 #include <regex>
-#include <thread>
 
 #include <http_server.hpp>
 
 #include <config.hpp>
+#include <event_bus.hpp>
 #include <logger.hpp>
 #include <session_manager.hpp>
 
@@ -12,10 +12,14 @@
 
 
 http_server::http_server(std::shared_ptr<config> config, std::shared_ptr<session_manager> session_manager,
-                         std::shared_ptr<logger> logger) :
-    _config(std::move(config)), _session_manager(std::move(session_manager)), _logger(std::move(logger)), _ioc(1),
-    _acceptor(_ioc) {
+                         std::shared_ptr<logger> logger, std::shared_ptr<event_bus> event_bus) :
+    _config(std::move(config)), _session_manager(std::move(session_manager)), _logger(std::move(logger)),
+    _event_bus(std::move(event_bus)), _ioc(1), _acceptor(_ioc) {
+    init_setup();
+    setup_event_handlers();
+}
 
+void http_server::init_setup() {
     auto ip = _config->get_ip().value();
     auto port = _config->get_http_port().value();
 
@@ -56,9 +60,19 @@ http_server::http_server(std::shared_ptr<config> config, std::shared_ptr<session
     _logger->info("HTTP server setup completed successfully");
 }
 
+
+void http_server::setup_event_handlers() {
+    _logger->info("Setting up http server event handlers");
+
+    _event_bus->subscribe<events::graceful_shutdown_event>([this]() { this->stop(); });
+
+    _logger->info("Htpp server setup of event handlers is completed");
+}
+
 http_server::~http_server() {
     _logger->info("Shutting down HTTP server");
     stop();
+    _logger->debug("Http server is destroyed");
 }
 
 void http_server::run() {
@@ -207,10 +221,7 @@ http::response<http::string_body> http_server::session::handle_stop() {
     res.body() = "Server shutdown initiated";
     res.prepare_payload();
 
-    std::thread([server = _server]() {
-        server->_session_manager->initiate_graceful_shutdown();
-        server->stop();
-    }).detach();
+    _server->_event_bus->publish<events::graceful_shutdown_event>();
 
     return res;
 }

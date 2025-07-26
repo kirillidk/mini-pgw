@@ -60,6 +60,8 @@ cdr_writer::~cdr_writer() {
         _logger->info("Closing CDR file");
         _file.close();
     }
+
+    _logger->debug("CDR writer is destroyed");
 }
 
 void cdr_writer::write_record(const cdr_record &record) {

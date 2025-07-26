@@ -19,11 +19,9 @@
 #include <magic_enum/magic_enum.hpp>
 
 udp_server::udp_server(std::shared_ptr<config> config, std::shared_ptr<packet_manager> packet_manager,
-                       std::shared_ptr<logger> logger, std::shared_ptr<event_bus> event_bus,
-                       std::shared_ptr<thread_pool> thread_pool) :
+                       std::shared_ptr<logger> logger, std::shared_ptr<event_bus> event_bus) :
     _config(std::move(config)), _packet_manager(std::move(packet_manager)), _logger(std::move(logger)),
-    _event_bus(std::move(event_bus)), _thread_pool(std::move(thread_pool)), _socket_fd(-1), _epoll_fd(-1),
-    _stop_event_fd(-1) {
+    _event_bus(std::move(event_bus)), _socket_fd(-1), _epoll_fd(-1), _stop_event_fd(-1) {
     auto ip = _config->get_ip().value();
     auto port = _config->get_port().value();
 
@@ -31,6 +29,7 @@ udp_server::udp_server(std::shared_ptr<config> config, std::shared_ptr<packet_ma
 
     setup(ip, port);
     setup_stop_event();
+    setup_event_handlers();
 }
 
 udp_server::~udp_server() {
@@ -48,6 +47,8 @@ udp_server::~udp_server() {
         close(_stop_event_fd);
         _logger->debug("Stop event fd closed");
     }
+
+    _logger->debug("Udp server is destroyed");
 }
 
 void udp_server::setup(const std::string &ip, int port) {
@@ -134,6 +135,18 @@ void udp_server::setup_stop_event() {
     _logger->debug("Stop event fd setup completed");
 }
 
+void udp_server::setup_event_handlers() {
+    _logger->info("Setting up udp_server event handlers");
+
+    _event_bus->subscribe<events::graceful_shutdown_event>([this]() {
+        _logger->debug("Scheduling graceful shutdown for udp server");
+
+        stop();
+    });
+
+    _logger->info("UDP server event handlers setup completed");
+}
+
 void udp_server::run() {
     _logger->info("Starting UDP server main loop");
     _running.store(true);
@@ -164,8 +177,8 @@ void udp_server::run() {
                 _running.store(false);
 
                 uint64_t val;
-                if (recv(_stop_event_fd, &val, sizeof(val), MSG_DONTWAIT) < 0) {
-                    _logger->error("Failed to receive from stop event fd: " + std::string(strerror(errno)));
+                if (eventfd_read(_stop_event_fd, &val) < 0) {
+                    _logger->error("Failed to read from stop event fd: " + std::string(strerror(errno)));
                 }
                 break;
             } else if (event.data.fd == _socket_fd) {
@@ -304,7 +317,7 @@ void udp_server::stop() {
     _running.store(false);
 
     uint64_t val = 1;
-    if (send(_stop_event_fd, &val, sizeof(val), MSG_DONTWAIT) < 0) {
-        _logger->error("Failed to send to stop event fd: " + std::string(strerror(errno)));
+    if (eventfd_write(_stop_event_fd, val) < 0) {
+        _logger->error("Failed to write to stop event fd: " + std::string(strerror(errno)));
     }
 }
