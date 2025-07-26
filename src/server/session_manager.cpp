@@ -67,10 +67,22 @@ void session_manager::delete_session(const std::string &imsi) {
     }
 }
 
-bool session_manager::in_blacklist(const std::string &imsi) const {
+bool session_manager::has_blacklist_session(const std::string &imsi) const {
+    std::lock_guard<std::mutex> lock(_sessions_mutex);
+
     bool is_blacklisted = _blacklist.contains(imsi);
     if (is_blacklisted) {
         _logger->debug("IMSI " + imsi + " found in blacklist");
     }
     return is_blacklisted;
+}
+
+bool session_manager::has_active_session(const std::string &imsi) const {
+    std::lock_guard<std::mutex> lock(_sessions_mutex);
+
+    bool is_active = _sessions.contains(imsi);
+    if (is_active) {
+        _logger->debug("IMSI " + imsi + " is active");
+    }
+    return is_active;
 }

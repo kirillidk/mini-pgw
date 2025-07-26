@@ -16,8 +16,8 @@
 
 udp_server::udp_server(std::shared_ptr<config> config, std::shared_ptr<packet_manager> packet_manager,
                        std::shared_ptr<logger> logger) :
-    _socket_fd(-1), _epoll_fd(-1), _config(std::move(config)), _packet_manager(std::move(packet_manager)),
-    _logger(std::move(logger)) {
+    _config(std::move(config)), _packet_manager(std::move(packet_manager)), _logger(std::move(logger)), _socket_fd(-1),
+    _epoll_fd(-1) {
 
     auto ip = _config->get_ip().value();
     auto port = _config->get_port().value();

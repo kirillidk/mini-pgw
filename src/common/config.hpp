@@ -21,6 +21,7 @@ public:
 
     [[nodiscard]] std::optional<std::string> get_ip() const;
     [[nodiscard]] std::optional<uint32_t> get_port() const;
+    [[nodiscard]] std::optional<uint32_t> get_http_port() const;
     [[nodiscard]] std::optional<uint32_t> get_session_timeout_sec() const;
     [[nodiscard]] std::optional<std::filesystem::path> get_cdr_file() const;
     [[nodiscard]] std::optional<uint32_t> get_graceful_shutdown_rate() const;
@@ -35,6 +36,7 @@ private:
 private:
     std::optional<std::string> _ip;
     std::optional<uint32_t> _port;
+    std::optional<uint32_t> _http_port;
     std::optional<uint32_t> _session_timeout_sec;
     std::optional<std::filesystem::path> _cdr_file;
     std::optional<uint32_t> _graceful_shutdown_rate;

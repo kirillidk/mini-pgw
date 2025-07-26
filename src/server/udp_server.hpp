@@ -59,13 +59,12 @@ private:
     void modify_epoll_events(uint32_t events);
 
 private:
-    int _socket_fd;
-    int _epoll_fd;
-
-    std::queue<pending_request> _request_queue;
-    std::queue<pending_response> _response_queue;
-
     std::shared_ptr<config> _config;
     std::shared_ptr<packet_manager> _packet_manager;
     std::shared_ptr<logger> _logger;
+
+    int _socket_fd;
+    int _epoll_fd;
+    std::queue<pending_request> _request_queue;
+    std::queue<pending_response> _response_queue;
 };

@@ -22,7 +22,8 @@ public:
     [[nodiscard]] std::shared_ptr<session> create_session(const std::string &imsi);
     void delete_session(const std::string &imsi);
 
-    [[nodiscard]] bool in_blacklist(const std::string &imsi) const;
+    [[nodiscard]] bool has_blacklist_session(const std::string &imsi) const;
+    [[nodiscard]] bool has_active_session(const std::string &imsi) const;
 
 private:
     void setup();
@@ -35,6 +36,5 @@ private:
 
     std::unordered_map<std::string, std::shared_ptr<session>> _sessions;
     std::unordered_set<std::string> _blacklist;
-
-    std::mutex _sessions_mutex;
+    mutable std::mutex _sessions_mutex;
 };

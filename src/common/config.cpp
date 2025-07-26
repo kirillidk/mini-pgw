@@ -16,6 +16,7 @@ config::config(const std::filesystem::path &path) {
 
     _ip = extract_value<std::string>(json_data, "server_ip");
     _port = extract_value<uint32_t>(json_data, "server_port");
+    _http_port = extract_value<uint32_t>(json_data, "http_port");
     _session_timeout_sec = extract_value<uint32_t>(json_data, "session_timeout_sec");
     _cdr_file = extract_value<std::filesystem::path>(json_data, "cdr_file");
     _graceful_shutdown_rate = extract_value<uint32_t>(json_data, "graceful_shutdown_rate");
@@ -35,6 +36,8 @@ std::optional<T> config::extract_value(const nlohmann::json &json, std::string_v
 std::optional<std::string> config::get_ip() const { return _ip; }
 
 std::optional<uint32_t> config::get_port() const { return _port; }
+
+std::optional<uint32_t> config::get_http_port() const { return _http_port; }
 
 std::optional<uint32_t> config::get_session_timeout_sec() const { return _session_timeout_sec; }
 

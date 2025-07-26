@@ -35,7 +35,7 @@ std::expected<std::string, packet_manager_error> packet_manager::handle_packet(P
     std::string imsi_str = imsi.value();
     _logger->debug("Extracted IMSI: " + imsi_str);
 
-    if (_session_manager->in_blacklist(imsi_str)) {
+    if (_session_manager->has_blacklist_session(imsi_str)) {
         _logger->info("IMSI " + imsi_str + " is in blacklist, rejecting session");
 
         _event_bus->publish<events::reject_session_event>(imsi_str);

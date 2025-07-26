@@ -39,7 +39,6 @@ public:
 private:
     std::vector<std::jthread> _workers;
     std::queue<std::function<void()>> _tasks;
-
     std::mutex _queue_mutex;
     std::condition_variable _cv;
 };
