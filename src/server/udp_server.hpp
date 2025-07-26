@@ -2,6 +2,7 @@
 
 #include <arpa/inet.h>
 #include <array>
+#include <atomic>
 #include <memory>
 #include <queue>
 #include <span>
@@ -12,6 +13,8 @@
 class config;
 class packet_manager;
 class logger;
+class event_bus;
+class thread_pool;
 
 class udp_server_exception : public std::runtime_error {
 public:
@@ -23,7 +26,8 @@ class udp_server {
 private:
 public:
     udp_server(std::shared_ptr<config> config, std::shared_ptr<packet_manager> packet_manager,
-               std::shared_ptr<logger> logger);
+               std::shared_ptr<logger> logger, std::shared_ptr<event_bus> event_bus,
+               std::shared_ptr<thread_pool> thread_pool);
     ~udp_server();
 
     udp_server(const udp_server &) = delete;
@@ -32,6 +36,7 @@ public:
     udp_server &operator=(udp_server &&) = delete;
 
     void run();
+    void stop();
 
 private:
     static constexpr u_int16_t MAX_EVENTS = 64;
@@ -51,6 +56,7 @@ private:
 
 private:
     void setup(const std::string &ip, int port);
+    void setup_stop_event();
 
     void read_packets(std::array<uint8_t, BUFFER_SIZE> &buffer);
     void send_pending_responses();
@@ -62,9 +68,15 @@ private:
     std::shared_ptr<config> _config;
     std::shared_ptr<packet_manager> _packet_manager;
     std::shared_ptr<logger> _logger;
+    std::shared_ptr<event_bus> _event_bus;
+    std::shared_ptr<thread_pool> _thread_pool;
 
     int _socket_fd;
     int _epoll_fd;
+    int _stop_event_fd;
+
     std::queue<pending_request> _request_queue;
     std::queue<pending_response> _response_queue;
+
+    std::atomic<bool> _running{false};
 };

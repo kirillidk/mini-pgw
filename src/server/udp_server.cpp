@@ -4,26 +4,33 @@
 #include <format>
 #include <span>
 #include <sys/epoll.h>
+#include <sys/eventfd.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
 #include <udp_server.hpp>
 
 #include <config.hpp>
+#include <event_bus.hpp>
 #include <logger.hpp>
-#include <magic_enum/magic_enum.hpp>
 #include <packet_manager.hpp>
+#include <thread_pool.hpp>
+
+#include <magic_enum/magic_enum.hpp>
 
 udp_server::udp_server(std::shared_ptr<config> config, std::shared_ptr<packet_manager> packet_manager,
-                       std::shared_ptr<logger> logger) :
-    _config(std::move(config)), _packet_manager(std::move(packet_manager)), _logger(std::move(logger)), _socket_fd(-1),
-    _epoll_fd(-1) {
-
+                       std::shared_ptr<logger> logger, std::shared_ptr<event_bus> event_bus,
+                       std::shared_ptr<thread_pool> thread_pool) :
+    _config(std::move(config)), _packet_manager(std::move(packet_manager)), _logger(std::move(logger)),
+    _event_bus(std::move(event_bus)), _thread_pool(std::move(thread_pool)), _socket_fd(-1), _epoll_fd(-1),
+    _stop_event_fd(-1) {
     auto ip = _config->get_ip().value();
     auto port = _config->get_port().value();
 
     _logger->info("Initializing UDP server on " + ip + ":" + std::to_string(port));
+
     setup(ip, port);
+    setup_stop_event();
 }
 
 udp_server::~udp_server() {
@@ -36,6 +43,10 @@ udp_server::~udp_server() {
     if (_epoll_fd != -1) {
         close(_epoll_fd);
         _logger->debug("Epoll fd closed");
+    }
+    if (_stop_event_fd != -1) {
+        close(_stop_event_fd);
+        _logger->debug("Stop event fd closed");
     }
 }
 
@@ -98,17 +109,47 @@ void udp_server::setup(const std::string &ip, int port) {
     _logger->info("UDP server setup completed successfully");
 }
 
+void udp_server::setup_stop_event() {
+    _logger->debug("Creating stop event fd");
+    _stop_event_fd = eventfd(0, EFD_NONBLOCK);
+    if (_stop_event_fd < 0) {
+        close(_socket_fd);
+        close(_epoll_fd);
+        _logger->fatal("Failed to create stop event fd");
+        throw udp_server_exception("Failed to create stop event fd");
+    }
+
+    epoll_event event;
+    event.events = EPOLLIN;
+    event.data.fd = _stop_event_fd;
+
+    if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, _stop_event_fd, &event) < 0) {
+        close(_socket_fd);
+        close(_epoll_fd);
+        close(_stop_event_fd);
+        _logger->fatal("Failed to add stop event fd to epoll");
+        throw udp_server_exception("Failed to add stop event fd to epoll");
+    }
+
+    _logger->debug("Stop event fd setup completed");
+}
+
 void udp_server::run() {
     _logger->info("Starting UDP server main loop");
+    _running.store(true);
 
     std::array<epoll_event, MAX_EVENTS> events;
     std::array<uint8_t, BUFFER_SIZE> buffer;
 
-    while (true) {
+    while (_running.load()) {
         _logger->debug("Waiting for events...");
         int event_count = epoll_wait(_epoll_fd, events.data(), MAX_EVENTS, -1);
 
         if (event_count < 0) {
+            if (errno == EINTR) {
+                _logger->debug("epoll_wait interrupted by signal");
+                continue;
+            }
             _logger->error("epoll_wait error: " + std::string(strerror(errno)));
             break;
         }
@@ -118,7 +159,16 @@ void udp_server::run() {
         for (int i = 0; i < event_count; ++i) {
             epoll_event &event = events[i];
 
-            if (events[i].data.fd == _socket_fd) {
+            if (event.data.fd == _stop_event_fd) {
+                _logger->info("Received stop signal");
+                _running.store(false);
+
+                uint64_t val;
+                if (recv(_stop_event_fd, &val, sizeof(val), MSG_DONTWAIT) < 0) {
+                    _logger->error("Failed to receive from stop event fd: " + std::string(strerror(errno)));
+                }
+                break;
+            } else if (event.data.fd == _socket_fd) {
                 if (event.events & EPOLLIN) {
                     read_packets(buffer);
                 }
@@ -132,7 +182,17 @@ void udp_server::run() {
         process_requests();
     }
 
-    _logger->info("UDP server main loop exited");
+    _logger->info("Processing remaining requests before shutdown...");
+    while (not _request_queue.empty()) {
+        process_requests();
+    }
+
+    _logger->info("Sending remaining responses before shutdown...");
+    while (not _response_queue.empty()) {
+        send_pending_responses();
+    }
+
+    _logger->info("UDP server main loop exited gracefully");
 }
 
 void udp_server::read_packets(std::array<uint8_t, BUFFER_SIZE> &buffer) {
@@ -237,4 +297,14 @@ void udp_server::modify_epoll_events(uint32_t events) {
     event.events = events;
     event.data.fd = _socket_fd;
     epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, _socket_fd, &event);
+}
+
+void udp_server::stop() {
+    _logger->info("Stopping UDP server...");
+    _running.store(false);
+
+    uint64_t val = 1;
+    if (send(_stop_event_fd, &val, sizeof(val), MSG_DONTWAIT) < 0) {
+        _logger->error("Failed to send to stop event fd: " + std::string(strerror(errno)));
+    }
 }
