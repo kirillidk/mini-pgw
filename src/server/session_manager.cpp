@@ -86,3 +86,47 @@ bool session_manager::has_active_session(const std::string &imsi) const {
     }
     return is_active;
 }
+
+void session_manager::initiate_graceful_shutdown() {
+    if (_shutdown_requested.exchange(true)) {
+        _logger->warning("Graceful shutdown already requested, ignoring duplicate request");
+        return;
+    }
+
+    _logger->info("Initiating graceful shutdown");
+
+    _thread_pool->enqueue([this]() { graceful_shutdown_worker(); });
+}
+
+
+void session_manager::graceful_shutdown_worker() {
+    _logger->info("Starting graceful shutdown worker");
+
+    auto shutdown_rate = _config->get_graceful_shutdown_rate().value();
+    auto delay_ms = std::chrono::milliseconds(1000 / shutdown_rate);
+
+    _logger->info("Graceful shutdown rate: " + std::to_string(shutdown_rate) + " sessions per second");
+
+    while (true) {
+        std::string imsi_to_delete;
+
+        {
+            std::lock_guard<std::mutex> lock(_sessions_mutex);
+            if (_sessions.empty()) {
+                _logger->info("All sessions have been gracefully removed");
+                break;
+            }
+
+            imsi_to_delete = _sessions.begin()->first;
+        }
+
+        delete_session(imsi_to_delete);
+        _logger->info("Gracefully removed session for IMSI: " + imsi_to_delete);
+
+        _event_bus->publish<events::delete_session_event>(imsi_to_delete);
+
+        std::this_thread::sleep_for(delay_ms);
+    }
+
+    _logger->info("Graceful shutdown completed - all sessions removed");
+}

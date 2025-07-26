@@ -159,7 +159,9 @@ http::response<http::string_body> http_server::session::handle_request(http::req
 
     std::string target = req.target();
 
-    // todo if target == /stop -> graceful shutdown
+    if (target == "/stop") {
+        return handle_stop();
+    }
 
     if (target.starts_with("/check_subscriber")) {
         std::regex imsi_regex(R"(/check_subscriber\?imsi=(\d{6,15}))");
@@ -191,6 +193,24 @@ http::response<http::string_body> http_server::session::handle_check_subscriber(
     res.prepare_payload();
 
     _server->_logger->info("Subscriber " + imsi + " status: " + response_body);
+
+    return res;
+}
+
+http::response<http::string_body> http_server::session::handle_stop() {
+    _server->_logger->info("Received stop request via HTTP API");
+
+    http::response<http::string_body> res{http::status::ok, _req.version()};
+    res.set(http::field::server, "SessionServer/1.0");
+    res.set(http::field::content_type, "text/plain");
+    res.keep_alive(false);
+    res.body() = "Server shutdown initiated";
+    res.prepare_payload();
+
+    std::thread([server = _server]() {
+        server->_session_manager->initiate_graceful_shutdown();
+        server->stop();
+    }).detach();
 
     return res;
 }

@@ -47,12 +47,14 @@ private:
         void on_read(beast::error_code ec, std::size_t bytes_transferred);
         void on_write(beast::error_code ec, std::size_t bytes_transferred, bool close);
 
-        http::response<http::string_body> handle_request(http::request<http::string_body> &&req);
+        [[nodiscard]] http::response<http::string_body> handle_request(http::request<http::string_body> &&req);
 
-        http::response<http::string_body> handle_check_subscriber(const std::string &imsi);
-        http::response<http::string_body> bad_request(const std::string &why);
-        http::response<http::string_body> not_found(const std::string &target);
-        http::response<http::string_body> server_error(const std::string &what);
+        [[nodiscard]] http::response<http::string_body> handle_check_subscriber(const std::string &imsi);
+        [[nodiscard]] http::response<http::string_body> handle_stop();
+
+        [[nodiscard]] http::response<http::string_body> bad_request(const std::string &why);
+        [[nodiscard]] http::response<http::string_body> not_found(const std::string &target);
+        [[nodiscard]] http::response<http::string_body> server_error(const std::string &what);
 
     private:
         beast::tcp_stream _stream;

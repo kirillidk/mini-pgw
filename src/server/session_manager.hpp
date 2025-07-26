@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -25,8 +26,11 @@ public:
     [[nodiscard]] bool has_blacklist_session(const std::string &imsi) const;
     [[nodiscard]] bool has_active_session(const std::string &imsi) const;
 
+    void initiate_graceful_shutdown();
+
 private:
     void setup();
+    void graceful_shutdown_worker();
 
 private:
     std::shared_ptr<config> _config;
@@ -37,4 +41,6 @@ private:
     std::unordered_map<std::string, std::shared_ptr<session>> _sessions;
     std::unordered_set<std::string> _blacklist;
     mutable std::mutex _sessions_mutex;
+
+    std::atomic<bool> _shutdown_requested{false};
 };
