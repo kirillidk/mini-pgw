@@ -25,7 +25,7 @@ packet_manager::~packet_manager() { _logger->info("Packet manager is destroyed")
 std::expected<std::string, packet_manager_error> packet_manager::handle_packet(Packet packet) {
     _logger->debug("Handling packet of size: " + std::to_string(packet.size()));
 
-    std::expected<std::string, utility::parse_error> imsi = utility::parse_imsi_from_bcd(packet);
+    std::expected<std::string, utility::decode_error> imsi = utility::decode_imsi_from_bcd(packet);
 
     if (not imsi.has_value()) {
         std::string error_msg = "Failed to parse IMSI: " + std::string(magic_enum::enum_name(imsi.error()));

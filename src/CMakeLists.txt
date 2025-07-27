@@ -43,3 +43,4 @@ set(COMMON_LIB "${PROJECT_NAME}_common_lib")
 
 add_subdirectory(common)
 add_subdirectory(server)
+add_subdirectory(client)

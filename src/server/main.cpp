@@ -16,8 +16,9 @@ namespace di = boost::di;
 
 int main() {
     try {
-        auto injector = di::make_injector(di::bind<std::filesystem::path>.to(std::filesystem::path{"config.json"}),
-                                          di::bind<std::size_t>.to(size_t(std::thread::hardware_concurrency())));
+        auto injector =
+                di::make_injector(di::bind<std::filesystem::path>.to(std::filesystem::path{"server_config.json"}),
+                                  di::bind<std::size_t>.to(size_t(std::thread::hardware_concurrency())));
 
         auto cdr_writer_ = injector.create<std::shared_ptr<cdr_writer>>();
 
