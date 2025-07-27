@@ -56,7 +56,7 @@ namespace utility {
     }
 
     std::expected<std::vector<uint8_t>, encode_error> encode_imsi_to_bcd(const std::string &imsi) {
-        if (!is_valid_imsi(imsi)) {
+        if (not is_valid_imsi(imsi)) {
             return std::unexpected(encode_error::invalid_imsi_format);
         }
 

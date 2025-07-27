@@ -14,15 +14,19 @@ config::config(const std::filesystem::path &path) {
         throw config_exception("Invalid JSON: " + std::string(e.what()));
     }
 
-    _ip = extract_value<std::string>(json_data, "server_ip");
-    _port = extract_value<uint32_t>(json_data, "server_port");
-    _http_port = extract_value<uint32_t>(json_data, "http_port");
-    _session_timeout_sec = extract_value<uint32_t>(json_data, "session_timeout_sec");
-    _cdr_file = extract_value<std::filesystem::path>(json_data, "cdr_file");
-    _graceful_shutdown_rate = extract_value<uint32_t>(json_data, "graceful_shutdown_rate");
-    _log_file = extract_value<std::filesystem::path>(json_data, "log_file");
-    _log_level = extract_value<std::string>(json_data, "log_level");
-    _blacklist = extract_value<std::unordered_set<std::string>>(json_data, "blacklist");
+    try {
+        _ip = extract_value<std::string>(json_data, "server_ip");
+        _port = extract_value<uint32_t>(json_data, "server_port");
+        _http_port = extract_value<uint32_t>(json_data, "http_port");
+        _session_timeout_sec = extract_value<uint32_t>(json_data, "session_timeout_sec");
+        _cdr_file = extract_value<std::filesystem::path>(json_data, "cdr_file");
+        _graceful_shutdown_rate = extract_value<uint32_t>(json_data, "graceful_shutdown_rate");
+        _log_file = extract_value<std::filesystem::path>(json_data, "log_file");
+        _log_level = extract_value<std::string>(json_data, "log_level");
+        _blacklist = extract_value<std::unordered_set<std::string>>(json_data, "blacklist");
+    } catch (const nlohmann::json_abi_v3_12_0::detail::type_error &e) {
+        throw config_exception("Invalid JSON: " + std::string(e.what()));
+    }
 }
 
 template<typename T>
