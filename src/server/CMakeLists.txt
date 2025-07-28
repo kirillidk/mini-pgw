@@ -10,12 +10,12 @@ add_library(${SERVER_LIB} STATIC ${SERVER_SOURCES})
 
 target_include_directories(${SERVER_LIB} PUBLIC 
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
-        ${boost_di_SOURCE_DIR}/include
 )
 target_compile_options(${SERVER_LIB} PUBLIC "-Werror" "-Wall" "-Wextra" "-Wpedantic" "-Wno-error=maybe-uninitialized")
 
 target_link_libraries(${SERVER_LIB} PUBLIC
         ${COMMON_LIB}
+	boost_di_interface
         magic_enum::magic_enum
         httplib::httplib
 )

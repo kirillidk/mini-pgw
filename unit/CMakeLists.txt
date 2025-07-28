@@ -1,12 +1,3 @@
-find_package(GTest)
-if (NOT GTest_FOUND)
-    include(FetchContent)
-    FetchContent_Declare(
-        googletest
-        URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.tar.gz
-    )
-endif()
-
 file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
 )
