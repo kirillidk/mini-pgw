@@ -17,6 +17,7 @@ set(CPM_USE_LOCAL_PACKAGES ON)
 CPMAddPackage(
     NAME Boost
     VERSION 1.88.0
+    FORCE YES
     URL https://github.com/boostorg/boost/releases/download/boost-1.88.0/boost-1.88.0-cmake.tar.xz
     OPTIONS
         "BOOST_ENABLE_CMAKE ON"
